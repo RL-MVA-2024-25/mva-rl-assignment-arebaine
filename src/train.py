@@ -1,13 +1,14 @@
 from gymnasium.wrappers import TimeLimit
-from fast_env import FastHIVPatient
+# from fast_env import FastHIVPatient
 from dqn import DQN
+from env_hiv import HIVPatient
 from ReplayBuffer import ReplayBuffer
 import torch
 from torch import nn
 import numpy as np
 
 env = TimeLimit(
-    env=FastHIVPatient(domain_randomization=False), max_episode_steps=200
+    env=HIVPatient(domain_randomization=False), max_episode_steps=200
 )  # The time wrapper limits the number of steps in an episode at 200.
 # Now is the floor is yours to implement the agent and train it.
 
@@ -45,7 +46,7 @@ class ProjectAgent:
             self.optimizer.step() 
 
     def train(self, max_episode, use_random=False):
-        env = TimeLimit(env=FastHIVPatient(domain_randomization=use_random), max_episode_steps=200) 
+        env = TimeLimit(env=HIVPatient(domain_randomization=use_random), max_episode_steps=200) 
         self.path_to_save = "models/dict.pt"
         self.memory = ReplayBuffer(capacity=100000, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         self.model = DQN()
