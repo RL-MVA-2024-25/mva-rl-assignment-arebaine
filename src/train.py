@@ -61,7 +61,7 @@ class ProjectAgent:
         self.epsilon_delay = 20
         self.epsilon_step = (self.epsilon_init-self.epsilon_min)/self.epsilon_stop
         self.batch_size = 100
-        self.nb_gradient_steps = 4
+        self.nb_gradient_steps = 5
         epsilon = self.epsilon_init
         state, _ = env.reset()
         save_rewards = []
@@ -93,6 +93,8 @@ class ProjectAgent:
             if done or trunc:
                 episode += 1
                 torch.save(self.model.state_dict(), "models/dict_transitoire.pt")
+                if episode%10==0:
+                    torch.save(self.model.state_dict(), "models/checkpoint.pt")
                 # Monitoring
                 save_rewards.append(episode_cum_reward)
                 print("Episode ", '{:2d}'.format(episode), 
@@ -110,7 +112,7 @@ class ProjectAgent:
 
 if __name__ == '__main__':
     agent = ProjectAgent()
-    agent.train(max_episode=10000)
+    agent.train(max_episode=10000, use_random=False)
 
 
 
