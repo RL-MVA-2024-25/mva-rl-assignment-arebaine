@@ -1,5 +1,4 @@
 from gymnasium.wrappers import TimeLimit
-# from fast_env import FastHIVPatient
 from dqn import DQN
 from env_hiv import HIVPatient
 from ReplayBuffer import ReplayBuffer
@@ -32,7 +31,7 @@ class ProjectAgent:
 
     def load(self):
         self.model = DQN()
-        self.model.load_state_dict(torch.load("models/dict_transitoire.pt", weights_only=True))
+        self.model.load_state_dict(torch.load("models/dict.pt", weights_only=True, map_location=torch.device('cpu')))
 
     def gradient_step(self):
         if len(self.memory) > self.batch_size:
@@ -45,24 +44,26 @@ class ProjectAgent:
             loss.backward()
             self.optimizer.step() 
 
-    def train(self, max_episode, use_random=False):
-        env = TimeLimit(env=HIVPatient(domain_randomization=use_random), max_episode_steps=200) 
+    def train(self, max_episode):
+        env = TimeLimit(env=HIVPatient(domain_randomization=True), max_episode_steps=200) 
         self.path_to_save = "models/dict.pt"
         self.memory = ReplayBuffer(capacity=100000, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         self.model = DQN()
+        self.model = self.model.to("cuda")
         self.target = DQN()
         self.target.load_state_dict(self.model.state_dict())
+        self.target = self.target.to("cuda")
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
         self.criterion = nn.MSELoss()
-        self.update_target_network_every = 100
-        self.gamma = 0.95
+        self.update_target_network_every = 1000
+        self.gamma = 0.98
         self.epsilon_init = 1
-        self.epsilon_min = 0.05
-        self.epsilon_stop = 10000
-        self.epsilon_delay = 20
+        self.epsilon_min = 0.01
+        self.epsilon_stop = 25000
+        self.epsilon_delay = 100
         self.epsilon_step = (self.epsilon_init-self.epsilon_min)/self.epsilon_stop
-        self.batch_size = 100
-        self.nb_gradient_steps = 5
+        self.batch_size = 1000
+        self.nb_gradient_steps = 6
         epsilon = self.epsilon_init
         state, _ = env.reset()
         save_rewards = []
@@ -93,9 +94,6 @@ class ProjectAgent:
             step += 1
             if done or trunc:
                 episode += 1
-                torch.save(self.model.state_dict(), "models/dict_transitoire.pt")
-                if episode%10==0:
-                    torch.save(self.model.state_dict(), "models/checkpoint.pt")
                 # Monitoring
                 save_rewards.append(episode_cum_reward)
                 print("Episode ", '{:2d}'.format(episode), 
@@ -104,16 +102,15 @@ class ProjectAgent:
                         ", ep return ", '{:4.1f}'.format(episode_cum_reward), 
                         sep='')
                 state, _ = env.reset()
-                episode_cum_reward = 0
             else:
                 state = next_state
-        
+
         torch.save(self.model.state_dict(), self.path_to_save)
         return episode_cum_reward
 
 if __name__ == '__main__':
     agent = ProjectAgent()
-    agent.train(max_episode=10000, use_random=False)
+    agent.train(max_episode=10000)
 
 
 
